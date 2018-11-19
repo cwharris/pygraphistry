@@ -1,0 +1,43 @@
+version: '3'
+services:
+  jupyter:
+    image: pygraphistry-jupyter
+    build:
+      dockerfile: ./compose/jupyter.Dockerfile
+      context: ..
+    volumes:
+      - ../.conda/envs/:/opt/conda/envs
+      - ../.conda/pkgs/:/opt/conda/pkgs
+      - ../:/opt/pygraphistry
+      - ../demos/:/home/jovyan/demos
+    environment:
+      - JUPYTER_TOKEN=graphistry
+    ports:
+      - 8888:8888
+  neo4j:
+    image: pygraphistry-neo4j
+    build:
+      dockerfile: ./compose/neo4j.Dockerfile
+      context: ..
+    ports:
+      - 7474:7474
+      - 7687:7687
+    environment:
+      - NEO4J_AUTH=none
+  test:
+    image: pygraphistry-test
+    build:
+      dockerfile: ./compose/test.Dockerfile
+      context: ..
+    depends_on:
+      - neo4j
+    volumes:
+      - ../.conda/envs/:/opt/conda/envs
+      - ../.conda/pkgs/:/opt/conda/pkgs
+      - ../:/opt/pygraphistry
+    environment:
+      - PY_IGNORE_IMPORTMISMATCH=1
+networks:
+  default:
+    external:
+      name: compose_grph_net
