@@ -1,25 +1,31 @@
 from graphistry.plotter import Plotter
-from graphistry.util import dict_util
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-__plotter = Plotter()
+
+_plotter = Plotter()
+
 
 def register(**settings):
-    global __plotter
-    __plotter = __plotter.settings(**settings)
+    Plotter.update_default_settings(settings)
+
 
 def data(**data):
-    global __plotter
-    return __plotter.data(**data)
+    global _plotter
+    return _plotter.data(**data)
 
 
 def bind(**bindings):
-    global __plotter
-    return __plotter.bind(**bindings)
+    global _plotter
+    return _plotter.bind(**bindings)
 
 
 def settings(**settings):
-    global __plotter
-    return __plotter.settings(**settings)
+    global _plotter
+    return _plotter.settings(**settings)
+
+
+def cypher(*kwargs):
+    global _plotter
+    return _plotter.cypher(*kwargs)
