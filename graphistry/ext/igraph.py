@@ -2,15 +2,15 @@ import igraph
 import pyarrow as arrow
 import itertools
 
-from graphistry.plotter import NODE_ID, EDGE_ID, EDGE_SRC, EDGE_DST
+from graphistry import constants
 
 
 def to_arrow( # TODO(cwharris): move these consts out of here
     graph,
-    node_id_column_name=NODE_ID,
-    edge_id_column_name=EDGE_ID,
-    edge_src_column_name=EDGE_SRC,
-    edge_dst_column_name=EDGE_DST
+    node_id_column_name=constants.DEFAULT_NODE_ID,
+    edge_id_column_name=constants.DEFAULT_EDGE_ID,
+    edge_src_column_name=constants.DEFAULT_EDGE_SRC,
+    edge_dst_column_name=constants.DEFAULT_EDGE_DST
 ):
     if not isinstance(graph, igraph.Graph):
         return None

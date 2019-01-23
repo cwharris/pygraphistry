@@ -2,14 +2,14 @@ import neo4j
 import pyarrow as arrow
 import itertools
 
-from graphistry.plotter import NODE_ID, EDGE_ID, EDGE_SRC, EDGE_DST
+from graphistry import constants
 
 def to_arrow( # TODO(cwharris): move these consts out of here
     graph,
-    node_id=NODE_ID,
-    edge_id=EDGE_ID,
-    edge_src=EDGE_SRC,
-    edge_dst=EDGE_DST,
+    node_id=constants.DEFAULT_NODE_ID,
+    edge_id=constants.DEFAULT_EDGE_ID,
+    edge_src=constants.DEFAULT_EDGE_SRC,
+    edge_dst=constants.DEFAULT_EDGE_DST,
     neo4j_type="__neo4j_type__",
     neo4j_label="__neo4j_label__"
 ):
@@ -119,7 +119,7 @@ def _intrinsic_node_columns(
 ):
     # TODO(cwharris): remove the string conversion once server can haandle non-ascending integers.
     # currently, ids will be remapped as part of pre-plot rectification.
-    yield arrow.column(NODE_ID, [
+    yield arrow.column(node_id, [
         [str(node.id) for node in nodes]
     ])
 

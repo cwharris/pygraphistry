@@ -2,15 +2,15 @@ import pyarrow
 import networkx
 import itertools
 
-from graphistry.plotter import NODE_ID, EDGE_ID, EDGE_SRC, EDGE_DST
+from graphistry import constants
 
 
 def to_arrow(
     graph
-    # node_id_column_name=NODE_ID,
-    # edge_id_column_name=EDGE_ID,
-    # edge_src_column_name=EDGE_SRC,
-    # edge_dst_column_name=EDGE_DST
+    # node_id_column_name=constants.DEFAULT_NODE_ID,
+    # edge_id_column_name=constants.DEFAULT_EDGE_ID,
+    # edge_src_column_name=constants.DEFAULT_EDGE_SRC,
+    # edge_dst_column_name=constants.DEFAULT_EDGE_DST
 ):
     return None if not isinstance(graph, networkx.Graph) else (
         pyarrow.Table.from_arrays([column for column in _edge_columns(graph)]),
@@ -25,11 +25,11 @@ def _edge_columns(graph):
         for key in edgeAttributes.keys()
     )
 
-    yield pyarrow.column(EDGE_SRC, [ # TODO(cwharris): make this name configurable
+    yield pyarrow.column(constants.DEFAULT_EDGE_SRC, [ # TODO(cwharris): make this name configurable
         [srcId for srcId, _ in graph.edges()]
     ])
 
-    yield pyarrow.column(EDGE_DST, [ # TODO(cwharris): make this name configurable
+    yield pyarrow.column(constants.DEFAULT_EDGE_DST, [ # TODO(cwharris): make this name configurable
         [dstId for _, dstId in graph.edges()]
     ])
 
@@ -48,7 +48,7 @@ def _node_columns(graph):
         for key in nodeAttributes.keys()
     )
 
-    yield pyarrow.column(NODE_ID, [ # TODO(cwharris): make this name configurable
+    yield pyarrow.column(constants.DEFAULT_NODE_ID, [ # TODO(cwharris): make this name configurable
         [nodeId for nodeId in graph.nodes()]
     ])
 
