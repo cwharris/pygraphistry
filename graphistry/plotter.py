@@ -5,9 +5,41 @@ import warnings
 from graphistry import constants
 from graphistry.util import arrow_util, dict_util, graph as graph_util
 
+_plotter_default_settings = {
+    'protocol': 'https',
+    'server': 'labs.graphistry.com',
+    'key': None,
+    'certificate_validation': None,
+    'bolt': None,
+    'height': 600
+}
+
+_plotter_default_bindings = {
+    # node : data
+    'node_id': constants.DEFAULT_NODE_ID,
+
+    # edge : data
+    'edge_id': constants.DEFAULT_EDGE_ID,
+    'edge_src': constants.DEFAULT_EDGE_SRC,
+    'edge_dst': constants.DEFAULT_EDGE_DST,
+
+    # node : visualization
+    'node_title': None,
+    'node_label': None,
+    'node_color': None,
+    'node_size': None,
+
+    # edge : visualization
+    'edge_title': None,
+    'edge_label': None,
+    'edge_color': None,
+    'edge_weight': None,
+}
+
 class AssignableSettings(object):
 
     _settings: dict
+
 
     def __init__(self, defaults, settings = {}):
         self._defaults = defaults
@@ -17,8 +49,10 @@ class AssignableSettings(object):
     def get(self, key):
         return self._settings[key] if key in self._settings else self._defaults[key]
 
+
     def set_unsafely(self, key, value):
         self._settings[key] = value
+
 
     def with_assignments(self, settings):
         return AssignableSettings(
@@ -37,43 +71,9 @@ class Plotter(object):
 
     @staticmethod
     def update_default_settings(settings):
-        Plotter.__default_settings.update(
-            (key, value) for key, value in settings.items() if key in Plotter.__default_settings
+        _plotter_default_settings.update(
+            (key, value) for key, value in settings.items() if key in _plotter_default_settings
         )
-
-
-    __default_settings = {
-        'protocol': 'https',
-        'server': 'labs.graphistry.com',
-        'key': None,
-        'certificate_validation': None,
-        'bolt': None,
-        'height': 600
-    }
-
-
-    __default_bindings = {
-        # node : data
-        'node_id': constants.DEFAULT_NODE_ID,
-
-        # edge : data
-        'edge_id': constants.DEFAULT_EDGE_ID,
-        'edge_src': constants.DEFAULT_EDGE_SRC,
-        'edge_dst': constants.DEFAULT_EDGE_DST,
-
-        # node : visualization
-        'node_title': None,
-        'node_label': None,
-        'node_color': None,
-        'node_size': None,
-
-        # edge : visualization
-        'edge_title': None,
-        'edge_label': None,
-        'edge_color': None,
-        'edge_weight': None,
-    }
-
 
     _data = {
         'nodes': None,
@@ -97,8 +97,8 @@ class Plotter(object):
     }
 
 
-    _bindings = AssignableSettings(__default_bindings)
-    _settings = AssignableSettings(__default_settings)
+    _bindings = AssignableSettings(_plotter_default_bindings)
+    _settings = AssignableSettings(_plotter_default_settings)
 
 
     def __init__(
@@ -118,7 +118,7 @@ class Plotter(object):
 
     def data(self,  **data):
         if 'graph' in data:
-            (edges, nodes) = graph_util.decompose(data['graph'])
+            (edges, nodes) = graph_util.decompose(data['graph'], self._bindings)
             return self.data(
                 edges=edges,
                 nodes=nodes
@@ -190,7 +190,7 @@ class Plotter(object):
 
         data = {
             self._bindings_map[key]: self._bindings.get(key)
-            for key in Plotter.__default_bindings.keys()
+            for key in _plotter_default_bindings.keys()
             if self._bindings.get(key) is not None
         }
 
@@ -252,8 +252,14 @@ class Plotter(object):
         eattribs.remove(self._bindings.get('edge_dst'))
         cols = [self._bindings.get('edge_src'), self._bindings.get('edge_dst')] + eattribs
         etuples = [tuple(x) for x in edges[cols].values]
-        return igraph.Graph.TupleList(etuples, directed=directed, edge_attrs=eattribs,
-                                      vertex_name_attr=self._bindings.get('node_id'))
+
+        return igraph.Graph.TupleList(
+            etuples,
+            directed=directed,
+            edge_attrs=eattribs,
+            vertex_name_attr=self._bindings.get('node_id')
+        )
+
 
     def igraph2pandas(self, ig):
         """Under current bindings, transform an IGraph into a pandas edges dataframe and a nodes dataframe.
@@ -285,19 +291,19 @@ class Plotter(object):
 
         self._check_mandatory_bindings(False)
 
+        vertex_attributes = ig.vs.attributes()
+
         if self._bindings.get('node_id') is None:
             self._bindings.set_unsafely('node_id', constants.DEFAULT_NODE_ID)
-            ig.vs[constants.DEFAULT_NODE_ID] = [v.index for v in ig.vs]
 
-        if self._bindings.get('node_id') not in ig.vs.attributes():
-            util.error('Vertex attribute "%s" bound to "node" does not exist.' % self._bindings.get('node_id'))
+        if self._bindings.get('node_id') not in vertex_attributes:
+            ig.vs[self._bindings.get('node_id')] = [v.index for v in ig.vs]
+            vertex_attributes = ig.vs.attributes()
 
         edata = get_edgelist(ig)
         ndata = [v.attributes() for v in ig.vs]
-        nodes = pandas.DataFrame(ndata, columns=ig.vs.attributes())
-
+        nodes = pandas.DataFrame(ndata, columns=vertex_attributes)
         cols = [self._bindings.get('edge_src'), self._bindings.get('edge_dst')] + ig.es.attributes()
-
         edges = pandas.DataFrame(edata, columns=cols)
 
         return (edges, nodes)
@@ -316,6 +322,7 @@ class Plotter(object):
             vattribs = g.nodes(data=True) if g.number_of_nodes() > 0 else []
         if not (self._bindings.get('node_id') is None) and self._bindings.get('node_id') in vattribs:
             util.error('Vertex attribute "%s" already exists.' % self._bindings.get('node_id'))
+
 
     def networkx2pandas(self, g):
         _warn_plotter_mutation()
@@ -348,6 +355,14 @@ class Plotter(object):
         edges = pandas.DataFrame(get_edgelist(g))
 
         return (edges, nodes)
+
+
+    def _check_mandatory_bindings(self, node_required):
+        if self._bindings.get('edge_src') is None or self._bindings.get('edge_dst') is None:
+            util.error('Both "source" and "destination" must be bound before plotting.')
+
+        if node_required and self._bindings.get('node_id') is None:
+            util.error('Node identifier must be bound when using node dataframe.')
 
 
 def _make_iframe(raw_url, height):

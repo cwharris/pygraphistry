@@ -2,34 +2,32 @@ import pyarrow
 import networkx
 import itertools
 
-from graphistry import constants
-
 
 def to_arrow(
-    graph
-    # node_id_column_name=constants.DEFAULT_NODE_ID,
-    # edge_id_column_name=constants.DEFAULT_EDGE_ID,
-    # edge_src_column_name=constants.DEFAULT_EDGE_SRC,
-    # edge_dst_column_name=constants.DEFAULT_EDGE_DST
+    graph,
+    bindings
 ):
     return None if not isinstance(graph, networkx.Graph) else (
-        pyarrow.Table.from_arrays([column for column in _edge_columns(graph)]),
-        pyarrow.Table.from_arrays([column for column in _node_columns(graph)])
+        pyarrow.Table.from_arrays([column for column in _edge_columns(graph, bindings)]),
+        pyarrow.Table.from_arrays([column for column in _node_columns(graph, bindings)])
     )
 
 
-def _edge_columns(graph):
+def _edge_columns(
+    graph,
+    bindings
+):
     attribute_names = set(
         key
         for _, _, edgeAttributes in graph.edges(data=True)
         for key in edgeAttributes.keys()
     )
 
-    yield pyarrow.column(constants.DEFAULT_EDGE_SRC, [ # TODO(cwharris): make this name configurable
+    yield pyarrow.column(bindings.get('edge_src'), [
         [srcId for srcId, _ in graph.edges()]
     ])
 
-    yield pyarrow.column(constants.DEFAULT_EDGE_DST, [ # TODO(cwharris): make this name configurable
+    yield pyarrow.column(bindings.get('edge_dst'), [
         [dstId for _, dstId in graph.edges()]
     ])
 
@@ -41,14 +39,17 @@ def _edge_columns(graph):
         ])
 
 
-def _node_columns(graph):
+def _node_columns(
+    graph,
+    bindings
+):
     attribute_names = set(
         key
         for _, nodeAttributes in graph.nodes(data=True)
         for key in nodeAttributes.keys()
     )
 
-    yield pyarrow.column(constants.DEFAULT_NODE_ID, [ # TODO(cwharris): make this name configurable
+    yield pyarrow.column(bindings.get('node_id'), [
         [nodeId for nodeId in graph.nodes()]
     ])
 

@@ -1,19 +1,15 @@
 import pytest
+import igraph
 
 from graphistry import Plotter
 
 
 def test_plot():
     pass
-    # p = Plotter() \
-    #     .data(
-    #         edges = None,
-    #         nodes = None
-    #     ) \
-    #     .bind(
-    #         source = 'x',
-    #     ) \
-    #     .plot()
 
-if __name__ == '__main__':
-    pytest.main()
+def test_igraph2pandas():
+    sourceGraph = igraph.Graph.Tree(2, 10)
+    plotter = Plotter().data(graph=sourceGraph)
+    pandasGraph = plotter.igraph2pandas(sourceGraph)
+    originGraph = plotter.pandas2igraph(pandasGraph)
+    pass
